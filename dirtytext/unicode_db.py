@@ -1,6 +1,12 @@
+import json
+import os.path
 import re
 import urllib.error
 import urllib.request as urequest
+
+DBPATH = os.path.join(os.path.dirname(__file__), "data")
+CATEGORIES_PATH = os.path.join(DBPATH, "categories.json")
+CONFUSABLES_PATH = os.path.join(DBPATH, "confusables.json")
 
 CONFUSABLES_PATTERN = re.compile(r"^([0-9a-fA-F]+)\s*;\s*([0-9a-fA-F]+)\s*;.+?\)\s*([\w\s-]+).+?([\w\s-]+)")
 CATEGORIES_PATTERN = re.compile(r"^([a-fA-F0-9]+)\.*([a-fA-F0-9]*)\s*;\s*([\w\s]+)\s*#\s*([\w&-]+)")
@@ -49,10 +55,37 @@ def get_categories(from_file="ftp://ftp.unicode.org/Public/UNIDATA/Scripts.txt")
         match = CATEGORIES_PATTERN.search(line)
         line = response.readline().decode()
         if match:
-            itm = {"sr": match[1], "er": match[2], "gcat": match[4]}
+            itm = {"range": (int(match[1], 16), int(match[2] or match[1], 16)), "gcat": match[4].lower().strip()}
             cat = match[3].lower().strip()
             if cat in dct:
                 dct[cat].append(itm)
                 continue
             dct[cat] = [itm]
+    # sort all
+    for _, v in dct.items():
+        sorted(v, key=lambda t: t["range"][0])
     return dct
+
+
+def read_jdb(path):
+    with open(path, "r") as file:
+        return json.loads(file.read())
+
+
+def _write_jdb(path, data):
+    with open(path, "w") as file:
+        file.write(json.dumps(data))
+
+
+def update_jdb(bpath=DBPATH, force=False):
+    operations = [{"func": get_categories,
+                   "path": CATEGORIES_PATH
+                   },
+                  {"func": get_confusables,
+                   "path": CONFUSABLES_PATH
+                   }]
+    for op in operations:
+        if not os.path.exists(op["path"]) or force:
+            data = op["func"]()
+            if data:
+                _write_jdb(op["path"], data)
