@@ -7,6 +7,8 @@ import urllib.request as urequest
 DBPATH = os.path.join(os.path.dirname(__file__), "data")
 CATEGORIES_PATH = os.path.join(DBPATH, "categories.json")
 CONFUSABLES_PATH = os.path.join(DBPATH, "confusables.json")
+CC_PATH = os.path.join(DBPATH, "control.json")
+CF_PATH = os.path.join(DBPATH, "format.json")
 
 CONFUSABLES_PATTERN = re.compile(r"^([0-9a-fA-F]+)\s*;\s*([0-9a-fA-F]+)\s*;.+?\)\s*([\w\s-]+).+?([\w\s-]+)")
 CATEGORIES_PATTERN = re.compile(r"^([a-fA-F0-9]+)\.*([a-fA-F0-9]*)\s*;\s*([\w\s]+)\s*#\s*([\w&-]+)")
@@ -63,8 +65,19 @@ def get_categories(from_file="ftp://ftp.unicode.org/Public/UNIDATA/Scripts.txt")
             dct[cat] = [itm]
     # sort all
     for _, v in dct.items():
-        sorted(v, key=lambda t: t["range"][0])
+        v.sort(key=lambda t: t["range"][0])
     return dct
+
+
+def _extract_gcat(cats, gcat):
+    ecat = []
+    for _, v in cats.items():
+        for itm in v:
+            if itm["gcat"].lower() == gcat:
+                ecat.append(itm)
+    # sort all
+    ecat.sort(key=lambda t: t["range"][0])
+    return ecat
 
 
 def read_jdb(path):
@@ -77,15 +90,18 @@ def _write_jdb(path, data):
         file.write(json.dumps(data))
 
 
-def update_jdb(bpath=DBPATH, force=False):
-    operations = [{"func": get_categories,
-                   "path": CATEGORIES_PATH
-                   },
-                  {"func": get_confusables,
-                   "path": CONFUSABLES_PATH
-                   }]
+def update_jdb(force=False):
+    operations = [{"func": get_categories, "path": CATEGORIES_PATH},
+                  {"func": get_confusables, "path": CONFUSABLES_PATH}]
+    if not os.path.exists(DBPATH):
+        os.mkdir(DBPATH)
     for op in operations:
         if not os.path.exists(op["path"]) or force:
             data = op["func"]()
             if data:
                 _write_jdb(op["path"], data)
+                if op["func"] == get_categories:
+                    cc = _extract_gcat(data, "cc")
+                    cf = _extract_gcat(data, "cf")
+                    _write_jdb(CC_PATH, cc)
+                    _write_jdb(CF_PATH, cf)
