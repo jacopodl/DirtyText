@@ -1,13 +1,14 @@
-from dirtytext.unicode_db import *
 from dirtytext.unitools import *
 
 
 def main():
-    update_jdb()
+    UnicodeDB.update_jdb()
     # check string:
-    ck = "\u037e"
-    ut = UniTools()
-    print(ut.contains_confusables(ck))
+    ck = "repⅼⅰcate"
+    # print(ut.contains_confusables(ck))
+    x = is_ascii(ck)
+    print(ck)
+    print(contains_confusables(ck, ["latin"]))
 
 
 if __name__ == "__main__":

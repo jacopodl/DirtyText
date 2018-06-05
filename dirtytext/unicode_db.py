@@ -7,8 +7,6 @@ import urllib.request as urequest
 DBPATH = os.path.join(os.path.dirname(__file__), "data")
 CATEGORIES_PATH = os.path.join(DBPATH, "categories.json")
 CONFUSABLES_PATH = os.path.join(DBPATH, "confusables.json")
-CC_PATH = os.path.join(DBPATH, "control.json")
-CF_PATH = os.path.join(DBPATH, "format.json")
 
 CONFUSABLES_PATTERN = re.compile(r"^([0-9a-fA-F]+)\s*;\s*([0-9a-fA-F]+)\s*;.+?\)\s*([\w\s-]+).+?([\w\s-]+)")
 CATEGORIES_PATTERN = re.compile(r"^([a-fA-F0-9]+)\.*([a-fA-F0-9]*)\s*;\s*([\w\s]+)\s*#\s*([\w&-]+)")
@@ -80,28 +78,46 @@ def _extract_gcat(cats, gcat):
     return ecat
 
 
-def read_jdb(path):
-    with open(path, "r") as file:
-        return json.loads(file.read())
+class _Singleton:
+    def __init__(self, clazz):
+        self.clazz = clazz
+        self.instance = None
+
+    def __call__(self, *args, **kwargs):
+        if self.instance is None:
+            self.instance = self.clazz(*args, **kwargs)
+        return self.instance
+
+    def __getattr__(self, item):
+        return getattr(self.clazz, item)
 
 
-def _write_jdb(path, data):
-    with open(path, "w") as file:
-        file.write(json.dumps(data))
+@_Singleton
+class UnicodeDB:
+    def __init__(self):
+        self.categories = UnicodeDB._read_jdb(CATEGORIES_PATH)
+        self.confusables = UnicodeDB._read_jdb(CONFUSABLES_PATH)
+        self.cc = _extract_gcat(self.categories, "cc")
+        self.cf = _extract_gcat(self.categories, "cf")
 
+    @staticmethod
+    def _read_jdb(path):
+        with open(path, "r") as file:
+            return json.loads(file.read())
 
-def update_jdb(force=False):
-    operations = [{"func": get_categories, "path": CATEGORIES_PATH},
-                  {"func": get_confusables, "path": CONFUSABLES_PATH}]
-    if not os.path.exists(DBPATH):
-        os.mkdir(DBPATH)
-    for op in operations:
-        if not os.path.exists(op["path"]) or force:
-            data = op["func"]()
-            if data:
-                _write_jdb(op["path"], data)
-                if op["func"] == get_categories:
-                    cc = _extract_gcat(data, "cc")
-                    cf = _extract_gcat(data, "cf")
-                    _write_jdb(CC_PATH, cc)
-                    _write_jdb(CF_PATH, cf)
+    @staticmethod
+    def _write_jdb(path, data):
+        with open(path, "w") as file:
+            file.write(json.dumps(data))
+
+    @staticmethod
+    def update_jdb(force=False):
+        operations = [{"func": get_categories, "path": CATEGORIES_PATH},
+                      {"func": get_confusables, "path": CONFUSABLES_PATH}]
+        if not os.path.exists(DBPATH):
+            os.mkdir(DBPATH)
+        for op in operations:
+            if not os.path.exists(op["path"]) or force:
+                data = op["func"]()
+                if data:
+                    UnicodeDB._write_jdb(op["path"], data)
