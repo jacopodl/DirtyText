@@ -2,24 +2,12 @@ from dirtytext.results import Match
 from dirtytext.unicode_db import read_jdb, CATEGORIES_PATH, CONFUSABLES_PATH, CC_PATH, CF_PATH
 
 
-class _Singleton:
-    def __init__(self, clazz):
-        self.clazz = clazz
-        self.instance = None
-
-    def __call__(self, *args, **kwargs):
-        if self.instance is None:
-            self.instance = self.clazz(*args, **kwargs)
-        return self.instance
-
-
 class UniTools:
     def __init__(self, categories=CATEGORIES_PATH, confusables=CONFUSABLES_PATH, control=CC_PATH, format=CF_PATH):
         self.categories = read_jdb(categories)
         self.confusables = read_jdb(confusables)
         self.cc = read_jdb(control)
         self.cf = read_jdb(format)
-        print()
 
     @staticmethod
     def _cat_bsearch(data, search):
@@ -37,6 +25,14 @@ class UniTools:
                 continue
             last = mid - 1
         return -1
+
+    @staticmethod
+    def is_ascii(string):
+        wrong = []
+        for i in range(len(string)):
+            if ord(string[i]) > 255 or ord(string[i]) < 0:
+                wrong.append(Match(i, string[i]))
+        return len(wrong) != 0, wrong
 
     def is_mixed(self, string, allowed_blocks=list(["common"])):
         wrong = []
@@ -85,3 +81,12 @@ class UniTools:
 
     def is_format_char(self, char):
         return UniTools._cat_bsearch(self.cf, char)
+
+    @staticmethod
+    def filter(string, matchs):
+        idx = 0
+        for match in matchs:
+            pos = match.idx - idx
+            string = string[:pos] + string[pos + 1:]
+            idx += 1
+        return string
