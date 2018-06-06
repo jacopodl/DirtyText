@@ -7,8 +7,14 @@ class Match:
         self.cval = "%04X" % ord(self.char)
         self.infos = infos
 
+    def to_dict(self):
+        dct = {}
+        for key in self.__slots__:
+            dct[key] = getattr(self, key)
+        return dct
+
     def __str__(self):
-        return str({"idx": self.idx, "char": self.char, "cval": self.cval, "infos": self.infos})
+        return str(self.to_dict())
 
     def __repr__(self):
         return self.__str__()

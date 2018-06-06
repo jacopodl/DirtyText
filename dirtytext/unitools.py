@@ -22,7 +22,7 @@ def _cat_bsearch(data, search):
 def is_ascii(string):
     wrong = []
     for i in range(len(string)):
-        if ord(string[i]) > 255 or ord(string[i]) < 0:
+        if not is_ascii_char(ord(string[i])):
             wrong.append(Match(i, string[i]))
     return len(wrong) != 0, wrong
 
@@ -73,17 +73,37 @@ def contains_zerowidth(string):
     return len(wrong) != 0, wrong
 
 
+def is_ascii_char(char):
+    char = ord(char) if type(char) != int else char
+    return 0 <= char <= 255
+
+
 def is_control_char(char):
+    char = ord(char) if type(char) != int else char
     return _cat_bsearch(UnicodeDB().cc, char)
 
 
 def is_format_char(char):
+    char = ord(char) if type(char) != int else char
     return _cat_bsearch(UnicodeDB().cf, char)
 
 
-def filter_string(string, matchs):
+def is_latinsubs(string):
+    wrong = []
+    if is_mixed(string, ["latin", "common"])[0]:
+        raise RuntimeError("is_latinsubs accepts only latin script")
+
+    chk = contains_confusables(string, ["latin"])
+    if chk[0]:
+        for itm in chk[1]:
+            if not is_ascii_char(ord(itm.char)):
+                wrong.append(itm)
+    return len(wrong) != 0, wrong
+
+
+def filter_string(string, matches):
     idx = 0
-    for match in matchs:
+    for match in matches:
         pos = match.idx - idx
         string = string[:pos] + string[pos + 1:]
         idx += 1
