@@ -101,6 +101,21 @@ def is_latinsubs(string):
     return len(wrong) != 0, wrong
 
 
+def stats(string):
+    cats = {}
+    for i in range(len(string)):
+        for k, v in UnicodeDB().categories.items():
+            test = _cat_bsearch(v, ord(string[i]))
+            if test > -1:
+                if k in cats:
+                    cats[k] += 1
+                else:
+                    cats[k] = 1
+                break
+
+    return cats
+
+
 def filter_string(string, matches):
     idx = 0
     for match in matches:
