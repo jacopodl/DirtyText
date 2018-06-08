@@ -24,7 +24,7 @@ def is_ascii(string):
     for i in range(len(string)):
         if not is_ascii_char(ord(string[i])):
             wrong.append(Match(i, string[i]))
-    return len(wrong) != 0, wrong
+    return len(wrong) == 0, wrong
 
 
 def is_mixed(string, allowed_blocks=list(["common"])):

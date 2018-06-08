@@ -94,6 +94,9 @@ class _Singleton:
 
 @_Singleton
 class UnicodeDB:
+    OPERATIONS = [{"func": get_categories, "path": CATEGORIES_PATH},
+                  {"func": get_confusables, "path": CONFUSABLES_PATH}]
+
     def __init__(self):
         self.categories = UnicodeDB._read_jdb(CATEGORIES_PATH)
         self.confusables = UnicodeDB._read_jdb(CONFUSABLES_PATH)
@@ -112,12 +115,19 @@ class UnicodeDB:
 
     @staticmethod
     def update_jdb(force=False):
-        operations = [{"func": get_categories, "path": CATEGORIES_PATH},
-                      {"func": get_confusables, "path": CONFUSABLES_PATH}]
         if not os.path.exists(DBPATH):
             os.mkdir(DBPATH)
-        for op in operations:
+        for op in UnicodeDB.OPERATIONS:
             if not os.path.exists(op["path"]) or force:
                 data = op["func"]()
                 if data:
                     UnicodeDB._write_jdb(op["path"], data)
+
+    @staticmethod
+    def exists_jdb():
+        if not os.path.exists(DBPATH):
+            return False
+        for op in UnicodeDB.OPERATIONS:
+            if not os.path.exists(op["path"]):
+                return False
+        return True
