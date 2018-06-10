@@ -21,26 +21,38 @@ def get_stream(filename=""):
     return None
 
 
-def print_results(ckname, result, verbosity=False):
-    print("\n%s: %s" % (ckname, result[0]))
-    if verbosity:
-        print("JSON:\n%s" % json.dumps([itm.to_dict() for itm in result[1]]))
+def check(ckdsc, func, *args, **kwargs):
+    result = func(*args, **kwargs)
+    print("\n%s: %s" % (ckdsc, result[0]))
+    return result
+
+
+def make_report(ckresult, verbosity=False, report=False):
+    if verbosity or report:
+        data = {"data": [itm.to_dict() for itm in ckresult[1]]}
+        if verbosity:
+            print("JSON:\n%s" % json.dumps(data["data"]))
+        return data
+    return {}
 
 
 def main():
     parser = argparse.ArgumentParser(description="Explore and sanitize unicode stream")
     parser.add_argument("--update", help="force database update", default=False, action="store_true")
-    parser.add_argument("--ascii", help="check if the stream contains only ASCII characters", default=False,
+    parser.add_argument("--ascii", help="check if the stream contains ONLY ASCII characters", default=False,
                         action="store_true")
-    parser.add_argument("--stats", help="check if the stream contains only ASCII characters", default=False,
+    parser.add_argument("--confusables", help="check if stream contains CONFUSABLES characters", nargs="+",
+                        metavar="BLOCK")
+    parser.add_argument("--stats", help="print text composition by unicode block", default=False,
                         action="store_true")
-    parser.add_argument("--zero", help="check if the stream contains zero width characters", default=False,
+    parser.add_argument("--zero", help="check if the stream contains ZERO-WIDTH characters", default=False,
                         action="store_true")
-    parser.add_argument("--confusables", help="check if stream contains confusables characters",
-                        nargs="+")
     parser.add_argument("--file", help="open file", default=str(), type=str)
+    parser.add_argument("--report", help="write JSON report", default=str(), type=str)
     parser.add_argument("-v", help="show details", default=False, action="store_true")
     args = parser.parse_args()
+
+    report = {}
 
     # check db status
     check_jdb(args.update)
@@ -50,13 +62,16 @@ def main():
         return 0
 
     if args.ascii:
-        print_results("Contains only ascii chars: ", is_ascii(stream), args.v)
+        data = check("Contains only ascii chars: ", is_ascii, stream)
+        report["non_ascii"] = make_report(data, args.v, args.report)
 
     if args.zero:
-        print_results("Contains zero-width chars: ", contains_zerowidth(stream), args.v)
+        data = check("Contains zero-width chars: ", contains_zerowidth, stream)
+        report["zero_width"] = make_report(data, args.v, args.report)
 
     if args.confusables:
-        print_results("Contains confusables chars: ", contains_confusables(stream, args.confusables), args.v)
+        data = check("Contains confusables chars: ", contains_confusables, stream, args.confusables)
+        report["confusables"] = make_report(data, args.v, args.report)
 
     if args.stats:
         print("\nStream compositions:")
@@ -74,6 +89,10 @@ def main():
             kspaced += " " * (maxlen - len(kspaced))
             bar = "#" * (int((v / total) / 10))
             print("%s\t%s\t| %d\t(%f%%)" % (kspaced, bar, v, v / total))
+
+    if args.report and report:
+        with open(args.report, "w") as file:
+            file.write(json.dumps(report))
 
 
 if __name__ == "__main__":
