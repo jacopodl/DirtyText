@@ -41,6 +41,12 @@ def is_mixed(string, allowed_blocks=list(["common"])):
     return len(wrong) != 0, wrong
 
 
+def clean_latinsubs(string, matches):
+    for match in matches:
+        string = string[:match.idx] + chr(int(match.infos[0]["target"], 16)) + string[match.idx + 1:]
+    return string
+
+
 def contains_confusables(string, of_blocks=list()):
     confusables = UnicodeDB().confusables
     cbles = []
