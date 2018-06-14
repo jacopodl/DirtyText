@@ -73,7 +73,7 @@ def contains_zerowidth(string):
         char = ord(string[i])
         for func in [is_control_char, is_format_char]:
             test = func(char)
-            if test > -1:
+            if test:
                 wrong.append(Match(i, string[i]))
                 break
     return len(wrong) != 0, wrong
@@ -86,12 +86,12 @@ def is_ascii_char(char):
 
 def is_control_char(char):
     char = ord(char) if type(char) != int else char
-    return _cat_bsearch(UnicodeDB().cc, char)
+    return _cat_bsearch(UnicodeDB().cc, char) > -1
 
 
 def is_format_char(char):
     char = ord(char) if type(char) != int else char
-    return _cat_bsearch(UnicodeDB().cf, char)
+    return _cat_bsearch(UnicodeDB().cf, char) > -1
 
 
 def is_latinsubs(string):

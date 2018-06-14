@@ -6,11 +6,13 @@ import sys
 from dirtytext.unitools import *
 
 
-def check_jdb(force_upd):
+def check_jdb(force_upd, verbosity=True):
     if not UnicodeDB.exists_jdb() or force_upd:
-        print("[*] Updating database, please wait...", end="", flush=True)
+        if verbosity:
+            print("[*] Updating database, please wait...", end="", flush=True)
         UnicodeDB.update_jdb(True)
-        print(" [done]")
+        if verbosity:
+            print(" [done]", flush=True)
 
 
 def get_stream(filename=None):
@@ -38,18 +40,25 @@ def make_report(results, verbosity=False, report=False):
     return {}
 
 
+def filter_stream(must_filter, func, *args, **kwargs):
+    if must_filter:
+        return func(*args, **kwargs)
+    return args[0]  # original stream
+
+
 def main():
     parser = argparse.ArgumentParser(description="Explore and sanitize unicode stream")
-    parser.add_argument("--ascii", help="check if the stream contains ONLY ASCII characters", default=False,
+    parser.add_argument("-a", "--ascii", help="check if stream contains ONLY ASCII characters", default=False,
                         action="store_true")
-    parser.add_argument("--confusables", help="check if stream contains CONFUSABLES characters", nargs="+",
+    parser.add_argument("-c", "--confusables", help="check if stream contains CONFUSABLES characters", nargs="+",
                         metavar="<block>")
-    parser.add_argument("-c", "--check", dest="check", help="checks anomalies in a LATIN unicode stream", default=False,
+    parser.add_argument("--check", dest="check", help="checks anomalies in a LATIN unicode stream", default=False,
                         action="store_true")
     parser.add_argument("-b", dest="blocks", help="shows unicode blocks and exit", default=False, action="store_true")
     parser.add_argument("-f", "--file", help="open file", default=None, type=str, metavar="<file>")
-    parser.add_argument("--filter", dest="filter", help="filter unicode stream", default=False,
-                        action="store_true")
+    parser.add_argument("--filter", dest="filter", help="filter unicode stream", default=False, action="store_true")
+    parser.add_argument("-o", "--only", dest="only", help="check if stream contains ONLY characters in selected BLOCKS",
+                        nargs="+", metavar="<block>")
     parser.add_argument("-p", "--pipeline", help="return modified stream to stdout", default=False, action="store_true")
     parser.add_argument("--report", help="write JSON report", default=str(), type=str, metavar="<file>")
     parser.add_argument("-s", "--save", dest="save", help="save modified stream", default=None, type=str,
@@ -57,9 +66,7 @@ def main():
     parser.add_argument("--stats", help="print text composition by unicode block", default=False, action="store_true")
     parser.add_argument("--update", help="force database update", default=False, action="store_true")
     parser.add_argument("-v", "--verbose", dest="verbose", help="show details", default=False, action="store_true")
-    parser.add_argument("-w", "--wipe", dest="wipe", help="removes anomaly in LATIN unicode text", default=False,
-                        action="store_true")
-    parser.add_argument("--zero", help="check if the stream contains ZERO-WIDTH characters", default=False,
+    parser.add_argument("-z", "--zero", help="check if stream contains ZERO-WIDTH characters", default=False,
                         action="store_true")
     args = parser.parse_args()
 
@@ -71,40 +78,59 @@ def main():
     if args.blocks:
         for k in UnicodeDB().categories:
             print("%s" % k)
-        return 0
+        exit(0)
 
     stream = get_stream(args.file)
     if stream is None:
         exit(0)
 
     if args.check:
-        data = exec_analysis("Contains suspected characters", args.verbose and not args.pipeline, is_latinsubs, stream)
-        report["suspected"] = make_report(data, args.verbose and not args.pipeline, args.report)
-        if args.wipe:
-            stream = clean_latinsubs(stream, data[1])
+        try:
+            data = exec_analysis("Contains suspected characters",
+                                 args.verbose and not args.pipeline,
+                                 is_latinsubs,
+                                 stream)
+            report["suspected"] = make_report(data, args.verbose and not args.pipeline, args.report)
+            stream = filter_stream(args.filter, clean_latinsubs, stream, data[1])
+        except RuntimeError as e:
+            sys.stderr.write(e.args[0])
+            exit(-1)
 
     if args.ascii:
-        data = exec_analysis("Contains only ascii characters", args.verbose and not args.pipeline, is_ascii, stream)
+        data = exec_analysis("Contains only ascii characters",
+                             args.verbose and not args.pipeline,
+                             is_ascii,
+                             stream)
         report["non_ascii"] = make_report(data, args.verbose and not args.pipeline, args.report)
-        if args.filter:
-            stream = filter_string(stream, data[1])
+        stream = filter_stream(args.filter, filter_string, stream, data[1])
 
     if args.zero:
-        data = exec_analysis("Contains zero-width characters", args.verbose and not args.pipeline, contains_zerowidth,
+        data = exec_analysis("Contains zero-width characters",
+                             args.verbose and not args.pipeline,
+                             contains_zerowidth,
                              stream)
         report["zero_width"] = make_report(data, args.verbose and not args.pipeline, args.report)
-        if args.filter:
-            stream = filter_string(stream, data[1])
+        stream = filter_stream(args.filter, filter_string, stream, data[1])
 
     if args.confusables:
-        data = exec_analysis("Contains confusables characters", args.verbose and not args.pipeline,
+        data = exec_analysis("Contains confusables characters",
+                             args.verbose and not args.pipeline,
                              contains_confusables,
-                             stream, args.confusables)
+                             stream,
+                             args.confusables)
         report["confusables"] = make_report(data, args.verbose and not args.pipeline, args.report)
-        if args.filter:
-            stream = filter_string(stream, data[1])
+        stream = filter_stream(args.filter, filter_string, stream, data[1])
 
-    if args.stats:
+    if args.only:
+        data = exec_analysis("Contains characters in other blocks",
+                             args.verbose and not args.pipeline,
+                             is_mixed,
+                             stream,
+                             args.only)
+        report["other"] = make_report(data, args.verbose and not args.pipeline, args.report)
+        stream = filter_stream(args.filter, filter_string, stream, data[1])
+
+    if args.stats and not args.pipeline:
         print("\nStream compositions:")
         total = len(stream) / 100
         maxlen = 0
