@@ -103,7 +103,9 @@ def is_latinsubs(string):
     if chk[0]:
         for itm in chk[1]:
             if not is_ascii_char(ord(itm.char)):
-                wrong.append(itm)
+                itm.infos = list(filter(lambda itm: is_ascii_char(int(itm["target"], 16)), itm.infos))
+                if itm.infos:
+                    wrong.append(itm)
     return len(wrong) != 0, wrong
 
 
