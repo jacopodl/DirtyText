@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 import argparse
 import json
 import sys
@@ -84,21 +83,9 @@ def main():
     if stream is None:
         exit(0)
 
-    if args.check:
-        try:
-            data = exec_analysis("Contains suspected characters",
-                                 args.verbose and not args.pipeline,
-                                 is_latinsubs,
-                                 stream)
-            report["suspected"] = make_report(data, args.verbose and not args.pipeline, args.report)
-            stream = filter_stream(args.filter, clean_latinsubs, stream, data[1])
-        except RuntimeError as e:
-            sys.stderr.write(e.args[0])
-            exit(-1)
-
     if args.ascii:
         data = exec_analysis("Contains only ascii characters",
-                             args.verbose and not args.pipeline,
+                             not args.pipeline,
                              is_ascii,
                              stream)
         report["non_ascii"] = make_report(data, args.verbose and not args.pipeline, args.report)
@@ -106,7 +93,7 @@ def main():
 
     if args.zero:
         data = exec_analysis("Contains zero-width characters",
-                             args.verbose and not args.pipeline,
+                             not args.pipeline,
                              contains_zerowidth,
                              stream)
         report["zero_width"] = make_report(data, args.verbose and not args.pipeline, args.report)
@@ -114,7 +101,7 @@ def main():
 
     if args.confusables:
         data = exec_analysis("Contains confusables characters",
-                             args.verbose and not args.pipeline,
+                             not args.pipeline,
                              contains_confusables,
                              stream,
                              args.confusables)
@@ -123,12 +110,24 @@ def main():
 
     if args.only:
         data = exec_analysis("Contains characters in other blocks",
-                             args.verbose and not args.pipeline,
+                             not args.pipeline,
                              is_mixed,
                              stream,
                              args.only)
         report["other"] = make_report(data, args.verbose and not args.pipeline, args.report)
         stream = filter_stream(args.filter, filter_string, stream, data[1])
+
+    if args.check:
+        try:
+            data = exec_analysis("Contains suspected characters",
+                                 not args.pipeline,
+                                 is_latinsubs,
+                                 stream)
+            report["suspected"] = make_report(data, args.verbose and not args.pipeline, args.report)
+            stream = filter_stream(args.filter, clean_latinsubs, stream, data[1])
+        except RuntimeError as e:
+            sys.stderr.write(e.args[0])
+            exit(-1)
 
     if args.stats and not args.pipeline:
         print("\nStream compositions:")
@@ -160,7 +159,3 @@ def main():
         sys.stdout.flush()
 
     exit(0)
-
-
-if __name__ == "__main__":
-    main()
