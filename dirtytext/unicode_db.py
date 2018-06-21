@@ -4,13 +4,6 @@ import re
 import urllib.error
 import urllib.request as urequest
 
-DBPATH = os.path.join(os.path.dirname(__file__), "data")
-CATEGORIES_PATH = os.path.join(DBPATH, "categories.json")
-CONFUSABLES_PATH = os.path.join(DBPATH, "confusables.json")
-
-CONFUSABLES_PATTERN = re.compile(r"^([0-9a-fA-F]+)\s*;\s*([0-9a-fA-F]+)\s*;.+?\)\s*([\w\s-]+).+?([\w\s-]+)")
-CATEGORIES_PATTERN = re.compile(r"^([a-fA-F0-9]+)\.*([a-fA-F0-9]*)\s*;\s*([\w\s]+)\s*#\s*([\w&-]+)")
-
 
 def get_confusables(from_file="ftp://ftp.unicode.org/Public/security/latest/confusables.txt"):
     def __add_uchar(uchar, desc, hlist):
@@ -78,56 +71,51 @@ def _extract_gcat(cats, gcat):
     return ecat
 
 
-class _Singleton:
-    def __init__(self, clazz):
-        self.clazz = clazz
-        self.instance = None
-
-    def __call__(self, *args, **kwargs):
-        if self.instance is None:
-            self.instance = self.clazz(*args, **kwargs)
-        return self.instance
-
-    def __getattr__(self, item):
-        return getattr(self.clazz, item)
+def _read_jdb(path):
+    with open(path, "r") as file:
+        return json.loads(file.read())
 
 
-@_Singleton
-class UnicodeDB:
-    OPERATIONS = [{"func": get_categories, "path": CATEGORIES_PATH},
-                  {"func": get_confusables, "path": CONFUSABLES_PATH}]
+def _write_jdb(path, data):
+    with open(path, "w") as file:
+        file.write(json.dumps(data))
 
+
+def update_jdb(force=False):
+    if not os.path.exists(DBPATH):
+        os.mkdir(DBPATH)
+    for op in __OPERATIONS:
+        if not os.path.exists(op["path"]) or force:
+            data = op["func"]()
+            if data:
+                _write_jdb(op["path"], data)
+
+
+def exists_jdb():
+    if not os.path.exists(DBPATH):
+        return False
+    for op in __OPERATIONS:
+        if not os.path.exists(op["path"]):
+            return False
+    return True
+
+
+class __UnicodeDB:
     def __init__(self):
-        self.categories = UnicodeDB._read_jdb(CATEGORIES_PATH)
-        self.confusables = UnicodeDB._read_jdb(CONFUSABLES_PATH)
+        self.categories = _read_jdb(CATEGORIES_PATH)
+        self.confusables = _read_jdb(CONFUSABLES_PATH)
         self.cc = _extract_gcat(self.categories, "cc")
         self.cf = _extract_gcat(self.categories, "cf")
 
-    @staticmethod
-    def _read_jdb(path):
-        with open(path, "r") as file:
-            return json.loads(file.read())
 
-    @staticmethod
-    def _write_jdb(path, data):
-        with open(path, "w") as file:
-            file.write(json.dumps(data))
+DBPATH = os.path.join(os.path.dirname(__file__), "data")
+CATEGORIES_PATH = os.path.join(DBPATH, "categories.json")
+CONFUSABLES_PATH = os.path.join(DBPATH, "confusables.json")
 
-    @staticmethod
-    def update_jdb(force=False):
-        if not os.path.exists(DBPATH):
-            os.mkdir(DBPATH)
-        for op in UnicodeDB.OPERATIONS:
-            if not os.path.exists(op["path"]) or force:
-                data = op["func"]()
-                if data:
-                    UnicodeDB._write_jdb(op["path"], data)
+CONFUSABLES_PATTERN = re.compile(r"^([0-9a-fA-F]+)\s*;\s*([0-9a-fA-F]+)\s*;.+?\)\s*([\w\s-]+).+?([\w\s-]+)")
+CATEGORIES_PATTERN = re.compile(r"^([a-fA-F0-9]+)\.*([a-fA-F0-9]*)\s*;\s*([\w\s]+)\s*#\s*([\w&-]+)")
 
-    @staticmethod
-    def exists_jdb():
-        if not os.path.exists(DBPATH):
-            return False
-        for op in UnicodeDB.OPERATIONS:
-            if not os.path.exists(op["path"]):
-                return False
-        return True
+__OPERATIONS = [{"func": get_categories, "path": CATEGORIES_PATH},
+                {"func": get_confusables, "path": CONFUSABLES_PATH}]
+
+unicode_db = __UnicodeDB()

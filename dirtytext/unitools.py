@@ -1,5 +1,5 @@
 from dirtytext.results import Match
-from dirtytext.unicode_db import UnicodeDB
+from dirtytext.unicode_db import unicode_db
 
 
 def _cat_bsearch(data, search):
@@ -19,28 +19,6 @@ def _cat_bsearch(data, search):
     return -1
 
 
-def is_ascii(string):
-    wrong = []
-    for i in range(len(string)):
-        if not is_ascii_char(ord(string[i])):
-            wrong.append(Match(i, string[i]))
-    return len(wrong) == 0, wrong
-
-
-def is_mixed(string, allowed_blocks=list(["common"])):
-    wrong = []
-    for i in range(len(string)):
-        test = -1
-        char = ord(string[i])
-        for block in allowed_blocks:
-            test = _cat_bsearch(UnicodeDB().categories[block], char)
-            if test >= 0:
-                break
-        if test < 0:
-            wrong.append(Match(i, string[i]))
-    return len(wrong) != 0, wrong
-
-
 def clean_latinsubs(string, matches):
     for match in matches:
         string = string[:match.idx] + chr(int(match.infos[0]["target"], 16)) + string[match.idx + 1:]
@@ -48,7 +26,7 @@ def clean_latinsubs(string, matches):
 
 
 def contains_confusables(string, of_blocks=list()):
-    confusables = UnicodeDB().confusables
+    confusables = unicode_db.confusables
     cbles = []
     for i in range(len(string)):
         key = "%04X" % ord(string[i])
@@ -79,6 +57,14 @@ def contains_zerowidth(string):
     return len(wrong) != 0, wrong
 
 
+def is_ascii(string):
+    wrong = []
+    for i in range(len(string)):
+        if not is_ascii_char(ord(string[i])):
+            wrong.append(Match(i, string[i]))
+    return len(wrong) == 0, wrong
+
+
 def is_ascii_char(char):
     char = ord(char) if type(char) != int else char
     return 0 <= char <= 255
@@ -86,12 +72,12 @@ def is_ascii_char(char):
 
 def is_control_char(char):
     char = ord(char) if type(char) != int else char
-    return _cat_bsearch(UnicodeDB().cc, char) > -1
+    return _cat_bsearch(unicode_db.cc, char) > -1
 
 
 def is_format_char(char):
     char = ord(char) if type(char) != int else char
-    return _cat_bsearch(UnicodeDB().cf, char) > -1
+    return _cat_bsearch(unicode_db.cf, char) > -1
 
 
 def is_latinsubs(string):
@@ -109,10 +95,24 @@ def is_latinsubs(string):
     return len(wrong) != 0, wrong
 
 
+def is_mixed(string, allowed_blocks=list(["common"])):
+    wrong = []
+    for i in range(len(string)):
+        test = -1
+        char = ord(string[i])
+        for block in allowed_blocks:
+            test = _cat_bsearch(unicode_db.categories[block], char)
+            if test >= 0:
+                break
+        if test < 0:
+            wrong.append(Match(i, string[i]))
+    return len(wrong) != 0, wrong
+
+
 def stats(string):
     cats = {}
     for i in range(len(string)):
-        for k, v in UnicodeDB().categories.items():
+        for k, v in unicode_db.categories.items():
             test = _cat_bsearch(v, ord(string[i]))
             if test > -1:
                 if k in cats:

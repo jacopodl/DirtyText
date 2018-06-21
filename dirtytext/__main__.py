@@ -2,14 +2,15 @@ import argparse
 import json
 import sys
 
+from dirtytext.unicode_db import exists_jdb, update_jdb
 from dirtytext.unitools import *
 
 
 def check_jdb(force_upd, verbosity=True):
-    if not UnicodeDB.exists_jdb() or force_upd:
+    if not exists_jdb() or force_upd:
         if verbosity:
             print("[*] Updating database, please wait...", end="", flush=True)
-        UnicodeDB.update_jdb(True)
+        update_jdb(True)
         if verbosity:
             print(" [done]", flush=True)
 
@@ -75,7 +76,7 @@ def main():
     check_jdb(args.update)
 
     if args.blocks:
-        for k in UnicodeDB().categories:
+        for k in unicode_db.categories:
             print("%s" % k)
         exit(0)
 
