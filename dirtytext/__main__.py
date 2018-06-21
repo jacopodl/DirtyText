@@ -1,6 +1,6 @@
-import argparse
 import json
 import sys
+from argparse import ArgumentParser
 
 from dirtytext.unicode_db import exists_jdb, update_jdb
 from dirtytext.unitools import *
@@ -47,22 +47,25 @@ def filter_stream(must_filter, func, *args, **kwargs):
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Explore and sanitize unicode stream")
-    parser.add_argument("-a", "--ascii", help="check if stream contains ONLY ASCII characters", default=False,
+    parser = ArgumentParser(description="Explore and sanitize unicode stream")
+    parser.add_argument("--ascii", help="check if stream contains ONLY ASCII characters", default=False,
                         action="store_true")
-    parser.add_argument("-c", "--confusables", help="check if stream contains CONFUSABLES characters", nargs="+",
+    parser.add_argument("--confusables", help="check if stream contains CONFUSABLES characters", nargs="+",
                         metavar="<block>")
-    parser.add_argument("--check", dest="check", help="checks anomalies in a LATIN unicode stream", default=False,
+    parser.add_argument("--lsubs", dest="lsubs", help="checks for ASCII confusables in the LATIN unicode stream. "
+                                                      "With option --filter the wrong LATIN characters "
+                                                      "will be replaced with the ASCII counterpart.",
+                        default=False,
                         action="store_true")
     parser.add_argument("-b", dest="blocks", help="shows unicode blocks and exit", default=False, action="store_true")
-    parser.add_argument("-f", "--file", help="open file", default=None, type=str, metavar="<file>")
+    parser.add_argument("-f", dest="file", help="open file", default=None, type=str, metavar="<file>")
     parser.add_argument("--filter", dest="filter", help="filter unicode stream", default=False, action="store_true")
-    parser.add_argument("-o", "--only", dest="only", help="check if stream contains ONLY characters in selected BLOCKS",
+    parser.add_argument("--only", dest="only", help="check if stream contains ONLY characters in selected BLOCKS",
                         nargs="+", metavar="<block>")
-    parser.add_argument("-p", "--pipeline", help="return modified stream to stdout", default=False, action="store_true")
+    parser.add_argument("-p", dest="pipeline", help="return modified stream to stdout", default=False,
+                        action="store_true")
     parser.add_argument("--report", help="write JSON report", default=str(), type=str, metavar="<file>")
-    parser.add_argument("-s", "--save", dest="save", help="save modified stream", default=None, type=str,
-                        metavar="<file>")
+    parser.add_argument("-s", dest="save", help="save modified stream", default=None, type=str, metavar="<file>")
     parser.add_argument("--stats", help="print text composition by unicode block", default=False, action="store_true")
     parser.add_argument("--update", help="force database update", default=False, action="store_true")
     parser.add_argument("-v", "--verbose", dest="verbose", help="show details", default=False, action="store_true")
@@ -118,7 +121,7 @@ def main():
         report["other"] = make_report(data, args.verbose and not args.pipeline, args.report)
         stream = filter_stream(args.filter, filter_string, stream, data[1])
 
-    if args.check:
+    if args.lsubs:
         try:
             data = exec_analysis("Contains suspected characters",
                                  not args.pipeline,
