@@ -72,6 +72,9 @@ def _extract_gcat(cats, gcat):
 
 
 def _read_jdb(path):
+    if not os.path.isfile(path):
+        return {}
+
     with open(path, "r") as file:
         return json.loads(file.read())
 
@@ -102,6 +105,13 @@ def exists_jdb():
 
 class __UnicodeDB:
     def __init__(self):
+        self.categories = None
+        self.confusables = None
+        self.cc = None
+        self.cf = None
+        self.reload()
+
+    def reload(self):
         self.categories = _read_jdb(CATEGORIES_PATH)
         self.confusables = _read_jdb(CONFUSABLES_PATH)
         self.cc = _extract_gcat(self.categories, "cc")
