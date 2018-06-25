@@ -4,12 +4,12 @@ Searches for [ab]using of Unicode glyphs.
 # Quick tour: #
 
 ## Common options: ##
-- Read text directly from file: --file \<filename>
-- Save modified text: --save \<file>
-- Filter text: --filter
-- Pipeline mode: -p/--pipeline
+- Read from file: -f \<filename>
+- Save modified text: -s \<file>
+- Text filter: --filter
+- Pipeline mode: -p
 
-### Looks for ZERO-WIDTH characters: ###
+### :mag_right: Looks for ZERO-WIDTH characters: ###
     $> echo "This text‌‌‌‌‍‌‬‌‌‌‌‌‍‬‍‍ ‌‌‌‌‍‬﻿‌contains‌‌‌‌‍‬﻿‌‌‌‌‌‍‬﻿﻿‌‌‌‌‌‬‌‌‌‌‌‌‍‍‍﻿‌‌‌‌‍‬﻿﻿ ‌‌‌‌‍﻿‌‬‌‌‌‌‍‬﻿‌zero-width‌‌‌‌‍‬‍‌ chars" | dirtytext --zero -v
 
 will produce the following output:
@@ -22,7 +22,7 @@ JSON:
 {"idx": 11, "char": "\u200c", "cval": "200C", "infos": null}, ...]
 ```
 
-### Looks for CONFUSABLES glyphs: ###
+### :mag_right: Looks for CONFUSABLES characters: ###
 
     $> echo "hello" | dirtytext --confusables greek -v
 
@@ -37,7 +37,7 @@ JSON:
 {"target": "03C3", "description": "GREEK SMALL LETTER SIGMA"}]}]
 ```
 
-### Looks and filter anomalies in LATIN text: ###
+### :mag_right: Looks and filter anomalies in LATIN text: ###
 ```text
 example.txt:
 
@@ -45,7 +45,7 @@ It ⅽan be argueⅾ that the ⅽomputer ⅰs humanⅰty’s att
 This ⅰs perhaps an unattainable goal. 
 However, unattainable goals often lead to outstanding accomplishment.
 ```
-    $> dirtytext --file example.txt --check --filter --save out.txt
+    $> dirtytext -f example.txt --lsubs --filter -s out.txt
 
 ```text
 out.txt:
