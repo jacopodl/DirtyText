@@ -47,7 +47,7 @@ def filter_stream(must_filter, func, *args, **kwargs):
 
 
 def main():
-    parser = ArgumentParser(description="Explore and sanitize unicode stream")
+    parser = ArgumentParser(description="Searches for [ab]using of Unicode glyphs")
     parser.add_argument("--ascii", help="check if stream contains ONLY ASCII characters", default=False,
                         action="store_true")
     parser.add_argument("--confusables", help="check if stream contains CONFUSABLES characters", nargs="+",

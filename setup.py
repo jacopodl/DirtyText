@@ -3,14 +3,14 @@ from setuptools import setup, find_packages
 setup(
     name="dirtytext",
     version="1.0.0",
-    description="Explore and sanitize unicode stream",
+    description="Searches for [ab]using of Unicode glyphs",
     long_description=open("README.md", "r", encoding="utf-8").read(),
     long_description_content_type="text/markdown",
     url="https://github.com/jacopodl/dirtytext",
     author="Jacopo De Luca",
     author_email="jacopo.delu@gmail.com",
     license="GNU General Public License v3",
-    keywords=["dirty", "text", "tool", "unicode", "UTF-8"],
+    keywords=["dirty", "text", "tool", "unicode", "UTF-8", "glyph"],
     packages=find_packages(),
     include_package_data=True,
     classifiers=[
