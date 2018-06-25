@@ -1,6 +1,13 @@
 # DirtyText # 
 Searches for [ab]using of Unicode glyphs.
 
+## Installation
+DirtyText package can be installed through pip :snake: :
+
+    $ pip install dirtytext
+
+or downloaded from [GitHub](https://github.com/jacopodl/dirtytext).
+
 # Quick tour: #
 
 ## Common options: ##
